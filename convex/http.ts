@@ -1,4 +1,3 @@
-'use server'
 import { httpRouter } from "convex/server";
 import { WebhookEvent } from "@clerk/nextjs/server";
 import {Webhook} from "svix";
@@ -16,9 +15,10 @@ http.route({
             throw new Error("Missing CLERK_WEBHOOK_SECRET environment variable");
         }
 
-        const svix_id = request.headers.get("svix_id");
-        const svix_signature = request.headers.get("svix_signature");
-        const svix_timestamp = request.headers.get("svix_timestamp");
+        const svix_id = request.headers.get("svix-id");
+        const svix_signature = request.headers.get("svix-signature");
+        const svix_timestamp = request.headers.get("svix-timestamp");
+
 
         if(!svix_id || !svix_signature || !svix_timestamp){
             return new Response("No svix headers found", {
@@ -56,12 +56,15 @@ http.route({
                 await ctx.runMutation(api.users.syncUser, {
                     email,
                     name,
-                    image: image_url,
+                    image: image_url ?? undefined,
                     clerkId: id
                 })
             } catch (error) {
                 console.log("Error creating user:", error);
-                return new Response("Error creating user:", {status:500})
+                console.error("❌ Error creating user in Convex:", error);
+                console.log("Payload being sent:", { email, name, image: image_url, clerkId: id });
+                return new Response("Error creating user", { status: 500 });
+                
             }
         }
 
